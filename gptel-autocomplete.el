@@ -263,82 +263,31 @@ If POSITION is nil, use point."
       (gptel-request
        prompt
        :system "/no_think
-You are a code completion assistant integrated into a code editor.
+You are a code completion assistant. Complete the code at █CURSOR█, inserting your response strictly between █START_COMPLETION█ and █END_COMPLETION█.
 
-Complete the code at the cursor position █CURSOR█. The █START_COMPLETION█ and █END_COMPLETION█ \
-markers indicate the exact region where your completion should be inserted, and you should only \
-complete code in that one specific region.
+REQUIREMENTS:
+1. Output MUST be wrapped in triple backticks (=).
+2. Start with █START_COMPLETION█ and end with █END_COMPLETION█ on their own lines.
+3. Replace █CURSOR█ with the appropriate code; do NOT repeat the █CURSOR█ token.
+4. Do NOT include any code that appears after █END_COMPLETION█ in the input.
+5. Be MINIMAL: 1-20 lines max. Most responses should be a single line.
 
-RESPONSE REQUIREMENTS:
-1. Response should be contained within code triple backticks (```)
-2. MUST start with █START_COMPLETION█ on its own line
-3. MUST end with █END_COMPLETION█ on its own line
-4. Complete the line containing █CURSOR█ (replacing █CURSOR█ with appropriate code)
-5. Do NOT include any code that appears after █END_COMPLETION█ in the input text
-6. Add any additional lines that logically follow between the markers
-7. If only █CURSOR█ is present in the completion section, generate new lines that follow \
-from the code before █START_COMPLETION█ (do NOT repeat the █CURSOR█ token)
-8. Generate a MINIMAL response (between 1-20 lines, the shorter and higher-confidence the \
-better; MOST of your responses will JUST BE ONE LINE)
-
-Example input:
+Example:
+Input:
 ```
 function foo(a, b) {
 █START_COMPLETION█
     if (a < b) █CURSOR█
 █END_COMPLETION█
 }
-
-function bar() {
-    console.log('bar');
-}
 ```
-
-Example correct output:
+Output:
 ```
 █START_COMPLETION█
     if (a < b) {
         return a;
     }
     return b;
-█END_COMPLETION█
-```
-
-Example WRONG output (do NOT do this; never provide output after end completion marker):
-```
-█START_COMPLETION█
-    if (a < b) {
-        return a;
-    }
-    return b;
-█END_COMPLETION█
-}
-
-function bar() {
-    console.log('bar');
-}
-```
-
-Example input:
-```
-function foo(a, b) {
-█START_COMPLETION█
-    █CURSOR█
-█END_COMPLETION█
-}
-```
-
-Example correct output:
-```
-█START_COMPLETION█
-    return a < b;
-█END_COMPLETION█
-```
-
-Example WRONG output (do NOT do this; never repeat the cursor token):
-```
-█START_COMPLETION█
-    █CURSOR█
 █END_COMPLETION█
 ```
 "
