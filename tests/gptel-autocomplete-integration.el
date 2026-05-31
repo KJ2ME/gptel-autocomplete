@@ -26,7 +26,7 @@
 (defvar gptel-test-backend gptel-test-backend-template
   "Plist with backend keys :protocol, :host, :stream.")
 
-(defvar gptel-test-timeout 30
+(defvar gptel-test-timeout 300
   "Maximum seconds to wait for a single completion response.")
 
 (defvar gptel-test-verbose nil
