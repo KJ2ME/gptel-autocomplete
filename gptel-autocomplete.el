@@ -90,6 +90,40 @@ Disable idle completion if set to nil."
 (defconst gptel-autocomplete-completion-map (make-sparse-keymap)
   "Keymap active only while a completion overlay is visible.")
 
+(defconst gptel-autocomplete--system-prompt
+  (concat "/no_think
+You are a code completion assistant. Complete the code at █CURSOR█, inserting your response strictly between █START_COMPLETION█ and █END_COMPLETION█.
+
+REQUIREMENTS:
+1. *entire* output **MUST** be wrapped in triple backticks (\`\`\`).
+2. Start with █START_COMPLETION█ and end with █END_COMPLETION█ on their own lines.
+3. Replace █CURSOR█ with the appropriate code; do NOT repeat the █CURSOR█ token.
+4. Do NOT include any code that appears after █END_COMPLETION█ in the input.
+5. Be MINIMAL: 1-20 lines max. Most responses should be a single line.
+6. Never output closing brackets, braces, or parentheses that close a scope already present outside the marked region.
+
+Example:
+Input:
+```
+function foo(a, b) {
+█START_COMPLETION█
+    if (a < b) █CURSOR█
+█END_COMPLETION█
+}
+```
+Output:
+```
+█START_COMPLETION█
+    if (a < b) {
+        return a;
+    }
+    return b;
+█END_COMPLETION█
+```
+
+")
+  "System prompt used for code completion requests.")
+
 (defvar gptel-autocomplete-mode-map (make-sparse-keymap)
   "Keymap for `gptel-autocomplete-mode'.")
 
@@ -262,35 +296,7 @@ If POSITION is nil, use point."
         (gptel--log "Full prompt:\n%s" prompt))
       (gptel-request
        prompt
-       :system "/no_think
-You are a code completion assistant. Complete the code at █CURSOR█, inserting your response strictly between █START_COMPLETION█ and █END_COMPLETION█.
-
-REQUIREMENTS:
-1. Output MUST be wrapped in triple backticks (`).
-2. Start with █START_COMPLETION█ and end with █END_COMPLETION█ on their own lines.
-3. Replace █CURSOR█ with the appropriate code; do NOT repeat the █CURSOR█ token.
-4. Do NOT include any code that appears after █END_COMPLETION█ in the input.
-5. Be MINIMAL: 1-20 lines max. Most responses should be a single line.
-
-Example:
-Input:
-```
-function foo(a, b) {
-█START_COMPLETION█
-    if (a < b) █CURSOR█
-█END_COMPLETION█
-}
-```
-Output:
-```
-█START_COMPLETION█
-    if (a < b) {
-        return a;
-    }
-    return b;
-█END_COMPLETION█
-```
-"
+       :system gptel-autocomplete--system-prompt
        :buffer (current-buffer)
        :position target-point
        :transforms (when gptel-autocomplete-use-context
