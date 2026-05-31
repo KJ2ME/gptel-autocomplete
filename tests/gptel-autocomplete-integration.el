@@ -102,23 +102,34 @@ Checks structural properties instead of exact content."
 ;;; Result logging
 
 (defun gptel-test--record (model fixture status data
-                                     &optional before after)
+                                     &optional before after prompt)
   "Record a test result.
 DATA is a short detail string for the summary table.
 BEFORE is the original code before completion.
-AFTER is the code with completion inserted."
+AFTER is the code with completion inserted.
+PROMPT is the prompt sent to the model."
   (push (list :model model
               :fixture (plist-get fixture :name)
               :status status
               :data data
               :code-before before
-              :code-after after)
+              :code-after after
+              :prompt prompt)
         gptel-test-results))
 
 (defun gptel-test--print-report ()
   "Print a summary table of all integration test results."
   (let ((results (reverse gptel-test-results)))
     (princ "\n\n========== Integration Test Report ==========\n")
+    ;; Show the system prompt from the first result
+    (when results
+      (let ((prompt (plist-get (car results) :prompt)))
+        (when prompt
+          (princ "\n;; Prompt:\n")
+          (princ prompt)
+          (unless (string-suffix-p "\n" prompt)
+            (princ "\n"))
+          (princ "\n"))))
     (princ (format "%-22s %-22s %-8s %s\n" "Model" "Fixture" "Status" "Detail"))
     (princ (make-string 80 ?=) t)
     (princ "\n")
@@ -182,11 +193,16 @@ Return plist with :status and :data."
           result-text callback-response callback-status had-triple-backticks
           (callback-done nil)
          (before-cursor-in-line
-          (with-current-buffer buffer
-            (let ((start (line-beginning-position))
-                  (end (point)))
-              (buffer-substring-no-properties start end))))
-         response-received
+           (with-current-buffer buffer
+             (let ((start (line-beginning-position))
+                   (end (point)))
+               (buffer-substring-no-properties start end))))
+          (after-cursor-in-line
+           (with-current-buffer buffer
+             (let ((start (point))
+                   (end (line-end-position)))
+               (buffer-substring-no-properties start end))))
+          response-received
          (timer (run-with-timer gptel-test-timeout nil
                                 (lambda ()
                                   (setq response-received :timeout))))
@@ -195,19 +211,23 @@ Return plist with :status and :data."
          (gptel-autocomplete-debug nil)
          (gptel-autocomplete-use-context nil)
          (gptel-prompt-transform-functions nil)
-         (gptel-temperature 0.1)
-         (gptel-autocomplete-temperature 0.1))
+           (gptel-temperature 0.1)
+           (gptel-autocomplete-temperature 0.1)
+           (marked-line (concat "█START_COMPLETION█\n"
+                                before-cursor-in-line "█CURSOR█" after-cursor-in-line "\n"
+                                "█END_COMPLETION█"))
+           (prompt (concat "Complete the code at the cursor position █CURSOR█ in buffer '"
+                           name "':\n````````\n"
+                           marked-line "\n````````\n"))
+           (full-prompt gptel-autocomplete--system-prompt))
 
     (unwind-protect
         (with-current-buffer buffer
           (goto-char point)
           (gptel--log "Integration test: %s / %s at char %d"
                       (plist-get fixture :name) model point)
-          (gptel-request
-           (format
-            "Complete the code at █CURSOR█ in buffer '%s':\n````````\n%s█CURSOR█\n````````\n"
-            name
-            (buffer-substring-no-properties (point-min) point))
+          (gptel-request prompt
+           :system gptel-autocomplete--system-prompt
            :buffer buffer
            :position point
            :callback
@@ -250,46 +270,46 @@ Return plist with :status and :data."
           ;; Validate
           (cond
             ((not callback-done)
-             (gptel-test--record model fixture 'failed
-                                 (format "Timeout (>%ds)" gptel-test-timeout))
-             (list :status 'failed :data "timeout"))
-            ((eq response-received :timeout)
-             (gptel-test--record model fixture 'failed "Response timeout")
-             (list :status 'failed :data "response timeout"))
-            ((not (stringp result-text))
-             (gptel-test--record model fixture 'failed
-                                 (format "No completion text (status=%s)" callback-status))
-             (list :status 'failed :data (format "no-text status=%s" callback-status)))
-            ((string-empty-p (string-trim result-text))
-             (gptel-test--record model fixture 'failed "Empty response")
-             (list :status 'failed :data "empty"))
-            ((string-match-p "█" result-text)
-             (gptel-test--record model fixture 'failed "Contains control tokens")
-             (list :status 'failed :data "has-control-tokens"))
-            ((let ((txt (string-trim result-text)))
-               (and (string-prefix-p "```" txt)
-                    (string-suffix-p "```" txt)
-                    (> (length txt) 6)))
-             (gptel-test--record model fixture 'failed "Wrapped in triple backticks")
-             (list :status 'failed :data "triple-backticks"))
-            ((let ((txt (string-trim result-text)))
-               (and (string-prefix-p "`" txt)
-                    (string-suffix-p "`" txt)
-                    (not (string-prefix-p "```" txt))
-                    (> (length txt) 1)))
-             (gptel-test--record model fixture 'failed "Wrapped in single backticks")
-             (list :status 'failed :data "single-backticks"))
-             (t
-              (let* ((trimmed (string-trim result-text))
-                     (before-cursor (substring content 0 (1- point)))
-                     (after-cursor (substring content (1- point)))
-                     (after (concat before-cursor trimmed after-cursor))
-                     (warning (when (and callback-response
-                                         (not had-triple-backticks))
-                                "WARNING: not wrapped in triple backticks # "))
-                     (detail (concat (or warning "") trimmed)))
-                (gptel-test--record model fixture 'passed detail content after)
-                (list :status 'passed :data result-text))))
+              (gptel-test--record model fixture 'failed
+                                  (format "Timeout (>%ds)" gptel-test-timeout)
+                                  nil nil full-prompt)
+              (list :status 'failed :data "timeout"))
+             ((eq response-received :timeout)
+              (gptel-test--record model fixture 'failed "Response timeout"
+                                  nil nil full-prompt)
+              (list :status 'failed :data "response timeout"))
+             ((not (stringp result-text))
+              (gptel-test--record model fixture 'failed
+                                  (format "No completion text (status=%s)" callback-status)
+                                  nil nil full-prompt)
+              (list :status 'failed :data (format "no-text status=%s" callback-status)))
+             ((string-empty-p (string-trim result-text))
+              (gptel-test--record model fixture 'failed "Empty response"
+                                  nil nil full-prompt)
+              (list :status 'failed :data "empty"))
+             ((string-match-p "█" result-text)
+              (gptel-test--record model fixture 'failed "Contains control tokens"
+                                  nil nil full-prompt)
+              (list :status 'failed :data "has-control-tokens"))
+             ((let ((txt (string-trim result-text)))
+                (and (string-prefix-p "`" txt)
+                     (string-suffix-p "`" txt)
+                     (not (string-prefix-p "```" txt))
+                     (> (length txt) 1)))
+              (gptel-test--record model fixture 'failed "Wrapped in single backticks"
+                                  nil nil full-prompt)
+              (list :status 'failed :data "single-backticks"))
+              (t
+               (let* ((trimmed (string-trim result-text))
+                      (before-cursor (substring content 0 (1- point)))
+                      (after-cursor (substring content (1- point)))
+                      (after (concat before-cursor trimmed after-cursor))
+                      (warning (when (and callback-response
+                                          (not had-triple-backticks))
+                                 "WARNING: not wrapped in triple backticks # "))
+                      (detail (concat (or warning "") trimmed)))
+                 (gptel-test--record model fixture 'passed detail content after full-prompt)
+                 (list :status 'passed :data result-text))))
       (cancel-timer timer)))))
 
 (defun gptel-test--run-all ()
