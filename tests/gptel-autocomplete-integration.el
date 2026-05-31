@@ -127,13 +127,16 @@ AFTER is the code with completion inserted."
             (fixture (plist-get r :fixture))
             (status (plist-get r :status))
             (data (plist-get r :data)))
-        (princ (format "%-22s %-22s %-8s %s\n"
-                       (format "%s" (or model "?"))
-                       (format "%s" (or fixture "?"))
-                       (format "%s" (or status "?"))
-                       (if (stringp data)
-                           (truncate-string-to-width data 60 nil nil t)
-                         "")))))
+        (let ((detail (if (stringp data)
+                          (replace-regexp-in-string
+                           "\n" "\\\\n"
+                           (truncate-string-to-width data 60 nil nil t))
+                        "")))
+          (princ (format "%-22s %-22s %-8s %s\n"
+                         (format "%s" (or model "?"))
+                         (format "%s" (or fixture "?"))
+                         (format "%s" (or status "?"))
+                         detail)))))
     (princ (make-string 80 ?=) t)
     (princ "\n")
     (let* ((passed (cl-count-if (lambda (r) (eq (plist-get r :status) 'passed)) results))
@@ -281,10 +284,10 @@ Return plist with :status and :data."
                      (before-cursor (substring content 0 (1- point)))
                      (after-cursor (substring content (1- point)))
                      (after (concat before-cursor trimmed after-cursor))
-                     (detail (concat trimmed
-                                     (when (and callback-response
-                                                (not had-triple-backticks))
-                                       " # WARNING: not wrapped in triple backticks"))))
+                     (warning (when (and callback-response
+                                         (not had-triple-backticks))
+                                "WARNING: not wrapped in triple backticks # "))
+                     (detail (concat (or warning "") trimmed)))
                 (gptel-test--record model fixture 'passed detail content after)
                 (list :status 'passed :data result-text))))
       (cancel-timer timer)))))
