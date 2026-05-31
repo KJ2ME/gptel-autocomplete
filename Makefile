@@ -17,6 +17,7 @@ test-integration:
 	  -l tests/gptel-autocomplete-integration.el \
 	  --eval "(setq gptel-test-models (split-string \"$(MODELS)\" \",\" t \"[ \t]+\"))" \
 	  $(and $(VERBOSE),--eval "(setq gptel-test-verbose t)") \
+	  $(and $(GPTEL_BACKEND),--eval '(setq gptel-test-backend (quote $(GPTEL_BACKEND)))') \
 	  --eval "(ert-run-tests-batch-and-exit '(tag integration))"
 
 test-all: test test-integration
