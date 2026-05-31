@@ -266,7 +266,7 @@ If POSITION is nil, use point."
 You are a code completion assistant. Complete the code at █CURSOR█, inserting your response strictly between █START_COMPLETION█ and █END_COMPLETION█.
 
 REQUIREMENTS:
-1. Output MUST be wrapped in triple backticks (```).
+1. *entire* output **MUST** be wrapped in triple backticks (\`\`\`).
 2. Start with █START_COMPLETION█ and end with █END_COMPLETION█ on their own lines.
 3. Replace █CURSOR█ with the appropriate code; do NOT repeat the █CURSOR█ token.
 4. Do NOT include any code that appears after █END_COMPLETION█ in the input.
