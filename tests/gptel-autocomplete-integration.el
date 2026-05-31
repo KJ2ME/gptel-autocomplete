@@ -169,13 +169,13 @@ AFTER is the code with completion inserted."
 (defun gptel-test--run-single (model fixture)
   "Run a single completion test: MODEL × FIXTURE.
 Return plist with :status and :data."
-  (let* ((prepared (gptel-test--apply-fixture fixture))
-         (buffer (plist-get prepared :buffer))
-         (point (plist-get prepared :point))
-         (name (plist-get prepared :name))
-         (content (plist-get prepared :content))
-         result-text callback-status
-         (callback-done nil)
+   (let* ((prepared (gptel-test--apply-fixture fixture))
+          (buffer (plist-get prepared :buffer))
+          (point (plist-get prepared :point))
+          (name (plist-get prepared :name))
+          (content (plist-get prepared :content))
+          result-text callback-response callback-status
+          (callback-done nil)
          (before-cursor-in-line
           (with-current-buffer buffer
             (let ((start (line-beginning-position))
@@ -212,26 +212,26 @@ Return plist with :status and :data."
                (when response-received
                  (cancel-timer timer)
                  (setq response-received :done))
-               (when (and (stringp response)
-                          (not (string-empty-p (string-trim response))))
-                 (let* ((trimmed (string-trim response))
-                        (code (if (string-match
-                                   "^```\\(?:[a-zA-Z]*\\)?\n\\(\\(?:.\\|\n\\)*?\\)\n```$"
-                                   trimmed)
-                                  (match-string 1 trimmed)
-                                trimmed))
-                        (extracted
-                         (if (string-match
-                              "█START_COMPLETION█\n\\(\\(?:.\\|\n\\)*?\\)\n█END_COMPLETION█"
-                              code)
-                             (let ((raw (match-string 1 code)))
-                               (if (and before-cursor-in-line
-                                        (not (string-empty-p before-cursor-in-line))
-                                        (string-prefix-p before-cursor-in-line raw))
-                                   (substring raw (length before-cursor-in-line))
-                                 raw))
-                           code)))
-                   (setq result-text extracted))))
+                (when (and (stringp response)
+                           (not (string-empty-p (string-trim response))))
+                  (let ((trimmed (string-trim response)))
+                    (setq callback-response trimmed)
+                    (when (string-match
+                           "^```\\(?:[a-zA-Z]*\\)?\n\\(\\(?:.\\|\n\\)*?\\)\n```$"
+                           trimmed)
+                      (let* ((code (match-string 1 trimmed))
+                             (extracted
+                              (if (string-match
+                                   "█START_COMPLETION█\n\\(\\(?:.\\|\n\\)*?\\)\n█END_COMPLETION█"
+                                   code)
+                                  (let ((raw (match-string 1 code)))
+                                    (if (and before-cursor-in-line
+                                             (not (string-empty-p before-cursor-in-line))
+                                             (string-prefix-p before-cursor-in-line raw))
+                                        (substring raw (length before-cursor-in-line))
+                                      raw))
+                                code)))
+                        (setq result-text extracted))))))
              (setq callback-done t)))
           ;; Wait for callback
           (let ((waited 0))
@@ -243,20 +243,24 @@ Return plist with :status and :data."
           (cancel-timer timer)
           ;; Validate
           (cond
-           ((not callback-done)
-            (gptel-test--record model fixture 'failed
-                                (format "Timeout (>%ds)" gptel-test-timeout))
-            (list :status 'failed :data "timeout"))
-           ((eq response-received :timeout)
-            (gptel-test--record model fixture 'failed "Response timeout")
-            (list :status 'failed :data "response timeout"))
-           ((not (stringp result-text))
-            (gptel-test--record model fixture 'failed
-                                (format "No completion text (status=%s)" callback-status))
-            (list :status 'failed :data (format "no-text status=%s" callback-status)))
-           ((string-empty-p (string-trim result-text))
-            (gptel-test--record model fixture 'failed "Empty response")
-            (list :status 'failed :data "empty"))
+            ((not callback-done)
+             (gptel-test--record model fixture 'failed
+                                 (format "Timeout (>%ds)" gptel-test-timeout))
+             (list :status 'failed :data "timeout"))
+            ((eq response-received :timeout)
+             (gptel-test--record model fixture 'failed "Response timeout")
+             (list :status 'failed :data "response timeout"))
+            ((and callback-response (not (stringp result-text)))
+             (gptel-test--record model fixture 'failed
+                                 "Not wrapped in triple backticks")
+             (list :status 'failed :data "missing-triple-backticks"))
+            ((not (stringp result-text))
+             (gptel-test--record model fixture 'failed
+                                 (format "No completion text (status=%s)" callback-status))
+             (list :status 'failed :data (format "no-text status=%s" callback-status)))
+            ((string-empty-p (string-trim result-text))
+             (gptel-test--record model fixture 'failed "Empty response")
+             (list :status 'failed :data "empty"))
             ((string-match-p "█" result-text)
              (gptel-test--record model fixture 'failed "Contains control tokens")
              (list :status 'failed :data "has-control-tokens"))
