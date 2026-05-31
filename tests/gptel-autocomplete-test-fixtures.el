@@ -31,13 +31,28 @@
     (:name "rust-match"
      :major-mode rust-mode
      :content ,(concat "fn describe(x: Option<i32>) -> String {\n"
-                       "    match x {\n"
-                       "        ")
-     :cursor-pos :eol))
+                        "    match x {\n"
+                        "        ")
+     :cursor-pos :eol)
+    (:name "js-if"
+     :major-mode js-mode
+     :content ,(concat "function checkAge(age) {\n"
+                        "    if (age >= 18) {\n"
+                        "        console.log('Adult');\n"
+                        "    } else█\n"
+                        "}")
+     :cursor-pos :cursor-marker)
+    (:name "js-for-loop"
+     :major-mode js-mode
+     :content ,(concat "function printNumbers() {\n"
+                        "    for (let i = 0; i█\n"
+                        "}")
+     :cursor-pos :cursor-marker))
   "List of fixture plists for integration tests.
 Each entry has :name (symbol), :major-mode (mode function),
 :content (string of code ending at the completion point),
-:cursor-pos (:eol to complete at end of line).")
+:cursor-pos (:eol to complete at end of line, or :cursor-marker
+when content contains a █ marker for cursor position).")
 
 (defconst gptel-test-default-models
   '("Qwen2.5-Coder")

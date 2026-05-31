@@ -66,7 +66,8 @@ Sends a benign request and checks for a non-nil response or callback."
 ;;; Fixture helpers
 
 (defun gptel-test--apply-fixture (fixture)
-  "Return a plist with :buffer and :point for FIXTURE."
+  "Return a plist with :buffer and :point for FIXTURE.
+If content contains `█', point is placed at that position (marker removed)."
   (let* ((content (plist-get fixture :content))
          (major (plist-get fixture :major-mode))
          (name (plist-get fixture :name))
@@ -78,12 +79,15 @@ Sends a benign request and checks for a non-nil response or callback."
           (message "Warning: %s not available, using prog-mode" major))
         (prog-mode))
       (insert content)
-      (goto-char (point-max))
-      (skip-chars-backward "\n" (line-beginning-position))
+      (let ((cpos (search-backward "█" nil t)))
+        (if cpos
+            (delete-char 1)
+          (goto-char (point-max))
+          (skip-chars-backward "\n" (line-beginning-position))))
       (list :name name
             :buffer buf
             :point (point)
-            :content content))))
+            :content (buffer-string)))))
 
 (defun gptel-test--completion-valid-p (text fixture)
   "Return non-nil if TEXT is a plausible completion for FIXTURE.
@@ -256,11 +260,13 @@ Return plist with :status and :data."
            ((string-match-p "█" result-text)
             (gptel-test--record model fixture 'failed "Contains control tokens")
             (list :status 'failed :data "has-control-tokens"))
-           (t
-            (let* ((trimmed (string-trim result-text))
-                   (after (concat content trimmed)))
-              (gptel-test--record model fixture 'passed trimmed content after)
-              (list :status 'passed :data result-text))))
+            (t
+             (let* ((trimmed (string-trim result-text))
+                    (before-cursor (substring content 0 (1- point)))
+                    (after-cursor (substring content (1- point)))
+                    (after (concat before-cursor trimmed after-cursor)))
+               (gptel-test--record model fixture 'passed trimmed content after)
+               (list :status 'passed :data result-text))))
       (cancel-timer timer)))))
 
 (defun gptel-test--run-all ()

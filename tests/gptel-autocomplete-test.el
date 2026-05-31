@@ -7,12 +7,17 @@
 ;;; Helpers
 
 (defun gptel-test--setup-buffer (content)
-  "Create a temp buffer with CONTENT, point at end of line (not at newline)."
+  "Create a temp buffer with CONTENT, point at cursor marker if present.
+If CONTENT contains `█', it is removed and point placed at that position.
+Otherwise point goes to end of last non-empty line."
   (let ((buf (generate-new-buffer " *gptel-test*")))
     (with-current-buffer buf
       (insert content)
-      (goto-char (point-max))
-      (skip-chars-backward "\n" (line-beginning-position)))
+      (let ((cpos (search-backward "█" nil t)))
+        (if cpos
+            (delete-char 1)
+          (goto-char (point-max))
+          (skip-chars-backward "\n" (line-beginning-position)))))
     buf))
 
 (defmacro gptel-test--with-mock (&rest body)
