@@ -300,7 +300,7 @@ Return plist with :status and :data."
                        (after (concat before-cursor trimmed after-cursor))
                        (warning (when (and callback-response
                                            (not had-markers))
-                                  "WARNING: not wrapped in █START_COMPLETION█/█END_COMPLETION█ # "))
+                                  "WARNING: not wrapped # "))
                        (detail (concat (or warning "") trimmed)))
                   (gptel-test--record model fixture 'passed detail content after full-prompt)
                   (list :status 'passed :data result-text))))
