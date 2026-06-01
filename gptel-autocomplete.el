@@ -111,7 +111,7 @@ function foo(a, b) {
 Output:
 ```
 █START_COMPLETION█
-{
+    if (a < b) {
         return a;
     }
     return b;
