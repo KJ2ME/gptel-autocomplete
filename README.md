@@ -132,7 +132,7 @@ This would typically return something like:
 ````
 ```typescript
 function calculateArea(width: number, height: number): number {
-  return width * area;
+  return width * height;
 }
 ```
 ````
@@ -140,7 +140,7 @@ function calculateArea(width: number, height: number): number {
 When what I wanted is:
 
 ```
-area;
+height;
 ```
 
 Some common issues encountered in responses:
