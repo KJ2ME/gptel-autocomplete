@@ -219,7 +219,7 @@ Return plist with :status and :data."
            (prompt (concat "Complete the code at the cursor position █CURSOR█ in buffer '"
                            name "':\n````````\n"
                            marked-line "\n````````\n"))
-           (full-prompt gptel-autocomplete--system-prompt))
+            (full-prompt gptel-autocomplete-system-prompt))
 
     (unwind-protect
         (with-current-buffer buffer
@@ -227,7 +227,7 @@ Return plist with :status and :data."
           (gptel--log "Integration test: %s / %s at char %d"
                       (plist-get fixture :name) model point)
           (gptel-request prompt
-           :system gptel-autocomplete--system-prompt
+           :system gptel-autocomplete-system-prompt
            :buffer buffer
            :position point
            :callback
