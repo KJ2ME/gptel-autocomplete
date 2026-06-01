@@ -63,6 +63,37 @@ Disable idle completion if set to nil."
           (const :tag "Idle completion disabled" nil))
   :group 'gptel-autocomplete)
 
+(defcustom gptel-autocomplete-system-prompt "/no_think
+You are a code completion assistant. Complete the code at █CURSOR█.
+
+REQUIREMENTS:
+1. Output **MUST** be wrapped between █START_COMPLETION█ and █END_COMPLETION█ lines.
+2. Do not repeat the cursor or surrounding code.
+3. Be minimal (1-20 lines max, usually a single line).
+
+Example:
+Input:
+```
+function foo(a, b) {
+█START_COMPLETION█
+    if (a < b) █CURSOR█
+█END_COMPLETION█
+}
+```
+Output:
+```
+█START_COMPLETION█
+    if (a < b) {
+        return a;
+    }
+    return b;
+█END_COMPLETION█
+```
+"
+  "System prompt used for code completion requests."
+  :type 'string
+  :group 'gptel-autocomplete)
+
 (defvar gptel--completion-text nil
   "Current GPTel completion text.")
 
@@ -262,33 +293,7 @@ If POSITION is nil, use point."
         (gptel--log "Full prompt:\n%s" prompt))
       (gptel-request
        prompt
-       :system "/no_think
-You are a code completion assistant. Complete the code at █CURSOR█.
-
-REQUIREMENTS:
-1. Output **MUST** be wrapped between █START_COMPLETION█ and █END_COMPLETION█ lines.
-2. Do not repeat the cursor or surrounding code.
-3. Be minimal (1-20 lines max, usually a single line).
-
-Example:
-Input:
-```
-function foo(a, b) {
-█START_COMPLETION█
-    if (a < b) █CURSOR█
-█END_COMPLETION█
-}
-```
-Output:
-```
-█START_COMPLETION█
-    if (a < b) {
-        return a;
-    }
-    return b;
-█END_COMPLETION█
-```
-"
+       :system gptel-autocomplete-system-prompt
        :buffer (current-buffer)
        :position target-point
        :transforms (when gptel-autocomplete-use-context
