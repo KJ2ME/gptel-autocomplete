@@ -157,6 +157,7 @@ I found the following techniques yielded good results:
 - Include an explicit cursor marker.
 - Provide explicit examples of bad output in the system prompt.
 - Use a lower temperature for more deterministic responses.
+- Using bold and caps for the word "**MUST**" makes a huge difference.
 
 Here's an example of how code is sent in the user prompt:
 
