@@ -92,13 +92,12 @@ Disable idle completion if set to nil."
 
 (defconst gptel-autocomplete--system-prompt
   (concat "/no_think
-You are a code completion assistant. Complete the code at █CURSOR█, inserting your response strictly between █START_COMPLETION█ and █END_COMPLETION█.
+You are a code completion assistant. Complete the code at █CURSOR█.
 
 REQUIREMENTS:
-1. **MUST** be wrapped between █START_COMPLETION█ and █END_COMPLETION█ lines.
-2. Replace █CURSOR█ with the appropriate code; do NOT repeat the █CURSOR█ token.
-3. Do NOT include any code that appears after █END_COMPLETION█ in the input.
-4. Be MINIMAL: 1-20 lines max. Most responses should be a single line.
+1. Output **MUST** be wrapped between █START_COMPLETION█ and █END_COMPLETION█ lines.
+2. Do not repeat the cursor or surrounding code.
+3. Be minimal (1-20 lines max, usually a single line).
 
 Example:
 Input:
