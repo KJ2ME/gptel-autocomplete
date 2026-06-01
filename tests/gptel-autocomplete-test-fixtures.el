@@ -1,12 +1,12 @@
 ;;; gptel-autocomplete-test-fixtures.el --- Test fixtures for gptel-autocomplete
 
 (defconst gptel-test-fixtures
-  `((:name "python-function"
+  `((:name "python-add-b"
      :major-mode python-mode
      :content ,(concat "def add(a, b):\n"
                        "    return a + ")
      :cursor-pos :eol)
-    (:name "python-return-nil"
+    (:name "python-return-none"
      :major-mode python-mode
      :content ,(concat "def find_user(uid):\n"
                        "    for u in users:\n"
@@ -14,40 +14,48 @@
                        "            return u\n"
                        "    return ")
      :cursor-pos :eol)
-    (:name "js-arrow"
+    (:name "js-multiply-by-two"
      :major-mode js-mode
-     :content ,(concat "const double = (x) => ")
+     :content ,(concat "const multiply_by_two = (x) => ")
      :cursor-pos :eol)
-    (:name "go-error"
+    (:name "go-division-error"
      :major-mode go-mode
-     :content ,(concat "func div(a, b float64) (float64, error) {\n"
+     :content ,(concat "func divide(a, b float64) (float64, error) {\n"
                        "    if b == 0 {\n"
                        "        return 0, ")
      :cursor-pos :eol)
-    (:name "python-lambda-key"
+    (:name "python-sort-by-first"
      :major-mode python-mode
-     :content ,(concat "data.sort(key=lambda x: ")
+     :content ,(concat "data = [(3, 'c'), (1, 'a'), (2, 'b')]\n"
+                       "data.sort(key=lambda x: ")
      :cursor-pos :eol)
-    (:name "rust-match"
+    (:name "rust-describe-option"
      :major-mode rust-mode
-     :content ,(concat "fn describe(x: Option<i32>) -> String {\n"
+     :content ,(concat "fn describe_option(x: Option<i32>) -> String {\n"
                         "    match x {\n"
                         "        ")
      :cursor-pos :eol)
-    (:name "js-if"
+    (:name "js-else-log"
      :major-mode js-mode
-     :content ,(concat "function checkAge(age) {\n"
+     :content ,(concat "function print_adult_or_minor(age) {\n"
                         "    if (age >= 18) {\n"
                         "        console.log('Adult');\n"
                         "    } else█\n"
                         "}")
      :cursor-pos :cursor-marker)
-    (:name "js-for-loop"
+    (:name "js-loop-up-to-n"
      :major-mode js-mode
-     :content ,(concat "function printNumbers() {\n"
+     :content ,(concat "function print_up_to(n) {\n"
                         "    for (let i = 0; i█\n"
                         "}")
-     :cursor-pos :cursor-marker))
+     :cursor-pos :cursor-marker)
+    (:name "php-filter-positive"
+     :major-mode php-mode
+     :content ,(concat "<?php\n"
+                       "$numbers = [1, -2, 3, -4];\n"
+                       "$positive = array_filter($numbers, function($n) {\n"
+                       "    return ")
+     :cursor-pos :eol))
   "List of fixture plists for integration tests.
 Each entry has :name (symbol), :major-mode (mode function),
 :content (string of code ending at the completion point),

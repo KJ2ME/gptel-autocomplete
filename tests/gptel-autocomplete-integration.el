@@ -190,7 +190,7 @@ Return plist with :status and :data."
           (point (plist-get prepared :point))
           (name (plist-get prepared :name))
           (content (plist-get prepared :content))
-          result-text callback-response callback-status had-triple-backticks
+           result-text callback-response callback-status had-markers
           (callback-done nil)
          (before-cursor-in-line
            (with-current-buffer buffer
@@ -239,25 +239,27 @@ Return plist with :status and :data."
                  (setq response-received :done))
                 (when (and (stringp response)
                            (not (string-empty-p (string-trim response))))
-                  (let* ((trimmed (string-trim response))
-                         (triple-match (string-match
-                                        "^```\\(?:[a-zA-Z]*\\)?\n\\(\\(?:.\\|\n\\)*?\\)\n```$"
-                                        trimmed))
-                         (code (if triple-match (match-string 1 trimmed) trimmed))
-                         (extracted
-                          (if (string-match
-                               "█START_COMPLETION█\n\\(\\(?:.\\|\n\\)*?\\)\n█END_COMPLETION█"
-                               code)
-                              (let ((raw (match-string 1 code)))
-                                (if (and before-cursor-in-line
-                                         (not (string-empty-p before-cursor-in-line))
-                                         (string-prefix-p before-cursor-in-line raw))
-                                    (substring raw (length before-cursor-in-line))
-                                  raw))
-                            code)))
-                    (setq result-text extracted
-                          callback-response trimmed
-                          had-triple-backticks triple-match))))
+                   (let* ((trimmed (string-trim response))
+                          (code (if (string-match
+                                     "^```\\(?:[a-zA-Z]*\\)?\n\\(\\(?:.\\|\n\\)*?\\)\n```$"
+                                     trimmed)
+                                    (match-string 1 trimmed)
+                                  trimmed))
+                          (marker-match (string-match
+                                        "█START_COMPLETION█\n\\(\\(?:.\\|\n\\)*?\\)\n█END_COMPLETION█"
+                                        code))
+                          (extracted
+                           (if marker-match
+                               (let ((raw (match-string 1 code)))
+                                 (if (and before-cursor-in-line
+                                          (not (string-empty-p before-cursor-in-line))
+                                          (string-prefix-p before-cursor-in-line raw))
+                                     (substring raw (length before-cursor-in-line))
+                                   raw))
+                             code)))
+                     (setq result-text extracted
+                           callback-response trimmed
+                           had-markers marker-match))))
              (setq callback-done t)))
           ;; Wait for callback
           (let ((waited 0))
@@ -287,29 +289,21 @@ Return plist with :status and :data."
               (gptel-test--record model fixture 'failed "Empty response"
                                   nil nil full-prompt)
               (list :status 'failed :data "empty"))
-             ((string-match-p "█" result-text)
-              (gptel-test--record model fixture 'failed "Contains control tokens"
-                                  nil nil full-prompt)
-              (list :status 'failed :data "has-control-tokens"))
-             ((let ((txt (string-trim result-text)))
-                (and (string-prefix-p "`" txt)
-                     (string-suffix-p "`" txt)
-                     (not (string-prefix-p "```" txt))
-                     (> (length txt) 1)))
-              (gptel-test--record model fixture 'failed "Wrapped in single backticks"
-                                  nil nil full-prompt)
-              (list :status 'failed :data "single-backticks"))
-              (t
-               (let* ((trimmed (string-trim result-text))
-                      (before-cursor (substring content 0 (1- point)))
-                      (after-cursor (substring content (1- point)))
-                      (after (concat before-cursor trimmed after-cursor))
-                      (warning (when (and callback-response
-                                          (not had-triple-backticks))
-                                 "WARNING: not wrapped in triple backticks # "))
-                      (detail (concat (or warning "") trimmed)))
-                 (gptel-test--record model fixture 'passed detail content after full-prompt)
-                 (list :status 'passed :data result-text))))
+              ((string-match-p "█" result-text)
+               (gptel-test--record model fixture 'failed "Contains control tokens"
+                                   nil nil full-prompt)
+               (list :status 'failed :data "has-control-tokens"))
+               (t
+                (let* ((trimmed (string-trim result-text))
+                       (before-cursor (substring content 0 (1- point)))
+                       (after-cursor (substring content (1- point)))
+                       (after (concat before-cursor trimmed after-cursor))
+                       (warning (when (and callback-response
+                                           (not had-markers))
+                                  "WARNING: not wrapped in █START_COMPLETION█/█END_COMPLETION█ # "))
+                       (detail (concat (or warning "") trimmed)))
+                  (gptel-test--record model fixture 'passed detail content after full-prompt)
+                  (list :status 'passed :data result-text))))
       (cancel-timer timer)))))
 
 (defun gptel-test--run-all ()

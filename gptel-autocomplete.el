@@ -95,12 +95,10 @@ Disable idle completion if set to nil."
 You are a code completion assistant. Complete the code at █CURSOR█, inserting your response strictly between █START_COMPLETION█ and █END_COMPLETION█.
 
 REQUIREMENTS:
-1. *entire* output **MUST** be wrapped in triple backticks (\`\`\`).
-2. Start with █START_COMPLETION█ and end with █END_COMPLETION█ on their own lines.
-3. Replace █CURSOR█ with the appropriate code; do NOT repeat the █CURSOR█ token.
-4. Do NOT include any code that appears after █END_COMPLETION█ in the input.
-5. Be MINIMAL: 1-20 lines max. Most responses should be a single line.
-6. Never output closing brackets, braces, or parentheses that close a scope already present outside the marked region.
+1. *MUST* be wrapped between █START_COMPLETION█ and █END_COMPLETION█.
+2. Replace █CURSOR█ with the appropriate code; do NOT repeat the █CURSOR█ token.
+3. Do NOT include any code that appears after █END_COMPLETION█ in the input.
+4. Be MINIMAL: 1-20 lines max. Most responses should be a single line.
 
 Example:
 Input:
@@ -114,13 +112,12 @@ function foo(a, b) {
 Output:
 ```
 █START_COMPLETION█
-    if (a < b) {
+{
         return a;
     }
     return b;
 █END_COMPLETION█
 ```
-
 ")
   "System prompt used for code completion requests.")
 
